@@ -23,7 +23,9 @@ def main():
         'samsepi0x0',
         'suryanssshhh',
         'tkj2410',
-        'chadasaisaketh'
+        'chadasaisaketh', 
+	'shoryashokanda',
+	'iamarpit602'
     ]
 
     for uname in unames:
