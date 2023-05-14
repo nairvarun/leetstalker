@@ -2,7 +2,6 @@
 
 # TODO:
     # multithread
-    # format output
 
 import requests
 import json
@@ -56,10 +55,6 @@ def main():
         'CWHITEBG2': '\33[107m',
     }
 
-    # print(colors['CBEIGE'] + colors['CBOLD'] + 'aaaaaa' + colors['CEND'])
-    # return
-
-
     url = 'https://leetcode.com/graphql/'
 
     headers = {
@@ -74,14 +69,19 @@ def main():
         'suryanssshhh',
         'tkj2410',
         'chadasaisaketh',
-	'shoryashokanda',
-	'iamarpit602'
+        'shoryashokanda',
+        'iamarpit602'
     ]
 
+    results = []
+
     for uname in unames:
-        res = query(url, headers, uname)
-        # todo: better way to do this
+        results.append(query(url, headers, uname))
+    results = sorted(results, key=lambda x: x["rank"])
+    for res in results:
+        # todo: find better way to print
         print(f'{colors["CBOLD"]}{res["uname"]}{colors["CEND"]} ({colors["CITALIC"]}{res["rank"]}{colors["CEND"]}) [{res["solved"]["total"]}: {colors["CGREEN"]}{res["solved"]["easy"]}{colors["CEND"]} + {colors["CYELLOW"]}{res["solved"]["medium"]}{colors["CEND"]} + {colors["CRED"]}{res["solved"]["hard"]}{colors["CEND"]}]')
+
 
 def query(url, headers, uname):
     ranking_data = {
