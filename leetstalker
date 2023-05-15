@@ -5,6 +5,8 @@
     # cache
     # dotfile
     # remove requests dep and move to urllib.request
+    # add more fields
+    # proper cli with easy way to add more unames
 
 import requests
 import json
