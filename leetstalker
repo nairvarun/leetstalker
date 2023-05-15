@@ -1,15 +1,17 @@
 #! /bin/python3
 
 # TODO:
-    # multithread
+    # improve speed
+    # cache
+    # dotfile
+    # remove requests dep and move to urllib.request
 
 import requests
 import json
-from pprint import pprint
-
+import concurrent.futures
 
 def main():
-    colors = {
+    COLORS: dict = {
         'CEND': '\33[0m',
         'CBOLD': '\33[1m',
         'CITALIC': '\33[3m',
@@ -54,14 +56,7 @@ def main():
         'CBEIGEBG2': '\33[106m',
         'CWHITEBG2': '\33[107m',
     }
-
-    url = 'https://leetcode.com/graphql/'
-
-    headers = {
-        'Content-Type': 'application/json',
-    }
-
-    unames = [
+    UNAMES: tuple = (
         'nairvarun',
         'gultandon',
         'user5491H',
@@ -71,38 +66,36 @@ def main():
         'chadasaisaketh',
         'shoryashokanda',
         'iamarpit602'
-    ]
-
+    )
+    URL: str = 'https://leetcode.com/graphql/'
     results = []
 
-    for uname in unames:
-        results.append(query(url, headers, uname))
+    # https://docs.python.org/3/library/concurrent.futures.html
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        future_to_uname = {executor.submit(query, URL, uname): uname for uname in UNAMES}
+
+        for future in concurrent.futures.as_completed(future_to_uname):
+            uname = future_to_uname[future]
+            try:
+                data = future.result()
+            except Exception as e:
+                print(f'{uname} generated an exception: {e}')
+            else:
+                results.append(data)
+
     results = sorted(results, key=lambda x: x["rank"])
     for res in results:
-        # todo: find better way to print
-        print(f'{colors["CBOLD"]}{res["uname"]}{colors["CEND"]} ({colors["CITALIC"]}{res["rank"]}{colors["CEND"]}) [{res["solved"]["total"]}: {colors["CGREEN"]}{res["solved"]["easy"]}{colors["CEND"]} + {colors["CYELLOW"]}{res["solved"]["medium"]}{colors["CEND"]} + {colors["CRED"]}{res["solved"]["hard"]}{colors["CEND"]}]')
+        # todo: find cleaner way to print
+        print(f'{COLORS["CBOLD"]}{res["uname"]}{COLORS["CEND"]} ({COLORS["CITALIC"]}{res["rank"]}{COLORS["CEND"]}) [{res["solved"]["total"]}: {COLORS["CGREEN"]}{res["solved"]["easy"]}{COLORS["CEND"]} + {COLORS["CYELLOW"]}{res["solved"]["medium"]}{COLORS["CEND"]} + {COLORS["CRED"]}{res["solved"]["hard"]}{COLORS["CEND"]}]')
 
-
-def query(url, headers, uname):
-    ranking_data = {
+def query(url: str, uname: str) -> dict:
+    query_data: dict = {
         'query': '''
-            query userPublicProfile($username: String!) {
+            query userPublicProfileAndProblemsSolved($username: String!) {
                 matchedUser(username: $username) {
                     profile {
                         ranking
                     }
-                }
-            }
-        ''',
-        'variables': {
-            'username': f'{uname}',
-        }
-    }
-
-    solved_data = {
-        'query': '''
-            query userProblemsSolved($username: String!) {
-                matchedUser(username: $username) {
                     submitStatsGlobal {
                         acSubmissionNum {
                             difficulty
@@ -117,22 +110,19 @@ def query(url, headers, uname):
         }
     }
 
-    ranking_response = requests.post(url, headers=headers, json=ranking_data)
-    solved_response = requests.post(url, headers=headers, json=solved_data)
+    query_res: dict = json.loads(requests.post(url, json=query_data).text)
 
-    ranking = json.loads(ranking_response.text)
-    solved = json.loads(solved_response.text)
-
-    res = {
+    res: dict = {
         'uname': uname,
-        'rank': ranking['data']['matchedUser']['profile']['ranking'],
+        'rank': query_res['data']['matchedUser']['profile']['ranking'],
         'solved': {
-            'total': solved['data']['matchedUser']['submitStatsGlobal']['acSubmissionNum'][0]['count'],
-            'easy': solved['data']['matchedUser']['submitStatsGlobal']['acSubmissionNum'][1]['count'],
-            'medium': solved['data']['matchedUser']['submitStatsGlobal']['acSubmissionNum'][2]['count'],
-            'hard': solved['data']['matchedUser']['submitStatsGlobal']['acSubmissionNum'][3]['count'],
+            'total': query_res['data']['matchedUser']['submitStatsGlobal']['acSubmissionNum'][0]['count'],
+            'easy': query_res['data']['matchedUser']['submitStatsGlobal']['acSubmissionNum'][1]['count'],
+            'medium': query_res['data']['matchedUser']['submitStatsGlobal']['acSubmissionNum'][2]['count'],
+            'hard': query_res['data']['matchedUser']['submitStatsGlobal']['acSubmissionNum'][3]['count'],
         }
     }
+
     return res
 
 if __name__ == "__main__":
