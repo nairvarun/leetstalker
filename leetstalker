@@ -3,7 +3,8 @@
 # TODO:
     # improve speed
     # cache
-    # dotfile
+    #
+
     # remove requests dep and move to urllib.request
     # add more fields
     # proper cli with easy way to add more unames
@@ -67,7 +68,6 @@ def main():
         'tkj2410',
         'chadasaisaketh',
         'shoryashokanda',
-        'iamarpit602'
     )
     URL: str = 'https://leetcode.com/graphql/'
     results = []
@@ -75,8 +75,11 @@ def main():
     # https://docs.python.org/3/library/concurrent.futures.html
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         future_to_uname = {executor.submit(query, URL, uname): uname for uname in UNAMES}
+        queries_completed = 0
+        print(queries_completed, '/', len(UNAMES), end='\r')
 
         for future in concurrent.futures.as_completed(future_to_uname):
+            print(queries_completed:= queries_completed+1, '/', len(UNAMES), end='\r')
             uname = future_to_uname[future]
             try:
                 data = future.result()
