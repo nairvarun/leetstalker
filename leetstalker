@@ -1,13 +1,9 @@
 #! /bin/python3
 
 # TODO:
-    # improve speed
-    # cache
-    #
-
     # remove requests dep and move to urllib.request
     # add more fields
-    # proper cli with easy way to add more unames
+    # show submission made today
 
 import requests
 import json
@@ -21,14 +17,14 @@ def main():
         'CURL': '\33[4m',
         'CBLINK': '\33[5m',
         'CBLINK2': '\33[6m',
-        'CSELECTED':'\33[7m',
+        'CSELECTED': '\33[7m',
 
         'CBLACK': '\33[30m',
         'CRED': '\33[31m',
         'CGREEN': '\33[32m',
         'CYELLOW':'\33[33m',
         'CBLUE': '\33[34m',
-        'CVIOLET':'\33[35m',
+        'CVIOLET': '\33[35m',
         'CBEIGE': '\33[36m',
         'CWHITE': '\33[37m',
 
@@ -37,7 +33,7 @@ def main():
         'CGREENBG': '\33[42m',
         'CYELLOWBG':'\33[43m',
         'CBLUEBG': '\33[44m',
-        'CVIOLETBG':'\33[45m',
+        'CVIOLETBG': '\33[45m',
         'CBEIGEBG': '\33[46m',
         'CWHITEBG': '\33[47m',
 
@@ -46,14 +42,14 @@ def main():
         'CGREEN2': '\33[92m',
         'CYELLOW2':'\33[93m',
         'CBLUE2': '\33[94m',
-        'CVIOLET2':'\33[95m',
+        'CVIOLET2': '\33[95m',
         'CBEIGE2': '\33[96m',
         'CWHITE2': '\33[97m',
 
         'CGREYBG': '\33[100m',
         'CREDBG2': '\33[101m',
         'CGREENBG2': '\33[102m',
-        'CYELLOWBG2':'\33[103m',
+        'CYELLOWBG2': '\33[103m',
         'CBLUEBG2': '\33[104m',
         'CVIOLETBG2':'\33[105m',
         'CBEIGEBG2': '\33[106m',
@@ -70,19 +66,19 @@ def main():
         'shoryashokanda',
     )
     URL: str = 'https://leetcode.com/graphql/'
-    results = []
+    results: list[dict] = []
 
     # https://docs.python.org/3/library/concurrent.futures.html
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         future_to_uname = {executor.submit(query, URL, uname): uname for uname in UNAMES}
-        queries_completed = 0
+        queries_completed: int = 0
         print(queries_completed, '/', len(UNAMES), end='\r')
 
         for future in concurrent.futures.as_completed(future_to_uname):
             print(queries_completed:= queries_completed+1, '/', len(UNAMES), end='\r')
-            uname = future_to_uname[future]
+            uname: str = future_to_uname[future]
             try:
-                data = future.result()
+                data: dict = future.result()
             except Exception as e:
                 print(f'{uname} generated an exception: {e}')
             else:
