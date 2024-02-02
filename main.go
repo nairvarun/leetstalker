@@ -40,7 +40,7 @@ type chanResult struct {
 	userData UserData
 }
 
-func query(username string, ch chan<-chanResult, wg *sync.WaitGroup) {
+func query(username string, ch chan<-chanResult, wg *sync.WaitGroup, client *http.Client) {
 	defer wg.Done()
 	graphqlQuery := map[string]string {
 		"query": `
@@ -74,7 +74,6 @@ func query(username string, ch chan<-chanResult, wg *sync.WaitGroup) {
 	}
 
 	request.Header.Set("Content-Type", "application/json")
-	client := &http.Client{Timeout: 10 * time.Second}
 	response, err := client.Do(request)
 	if err != nil {
 		panic(err)
@@ -94,6 +93,7 @@ func query(username string, ch chan<-chanResult, wg *sync.WaitGroup) {
 func main() {
 	ch := make(chan chanResult)
 	var wg sync.WaitGroup
+	client := &http.Client{Timeout: 10 * time.Second}
 
 	configuration, err := config.LoadConfig()
 	if err != nil {
@@ -103,7 +103,7 @@ func main() {
 	unames := configuration.Usernames
 	for _, uname := range unames {
 		wg.Add(1)
-		go query(uname, ch, &wg)
+		go query(uname, ch, &wg, client)
 	}
 	go func() {
 		wg.Wait()
