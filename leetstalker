@@ -90,12 +90,20 @@ def main():
     results = sorted(results, key=lambda x: x["rank"])
     for res in results:
         # todo: find cleaner way to print
-        print(f'{COLORS["CBOLD"]}{res["uname"]}{COLORS["CEND"]} ({COLORS["CITALIC"]}{res["rank"]}{COLORS["CEND"]}) [{res["solved"]["total"]}: {COLORS["CGREEN"]}{res["solved"]["easy"]}{COLORS["CEND"]} + {COLORS["CYELLOW"]}{res["solved"]["medium"]}{COLORS["CEND"]} + {COLORS["CRED"]}{res["solved"]["hard"]}{COLORS["CEND"]}]')
+        if res['contest'] is not None:
+            print(f'{COLORS["CBOLD"]}{res["uname"]}{COLORS["CEND"]} ({COLORS["CITALIC"]}{res["rank"]}{COLORS["CEND"]}) [{res["solved"]["total"]}: {COLORS["CGREEN"]}{res["solved"]["easy"]}{COLORS["CEND"]} + {COLORS["CYELLOW"]}{res["solved"]["medium"]}{COLORS["CEND"]} + {COLORS["CRED"]}{res["solved"]["hard"]}{COLORS["CEND"]}] [{COLORS["CVIOLET"]}{int(res["contest"]["rating"])}{COLORS["CEND"]} {COLORS["CBEIGE"]}{res["contest"]["percentile"]}{COLORS["CEND"]}]')
+        else:
+            print(f'{COLORS["CBOLD"]}{res["uname"]}{COLORS["CEND"]} ({COLORS["CITALIC"]}{res["rank"]}{COLORS["CEND"]}) [{res["solved"]["total"]}: {COLORS["CGREEN"]}{res["solved"]["easy"]}{COLORS["CEND"]} + {COLORS["CYELLOW"]}{res["solved"]["medium"]}{COLORS["CEND"]} + {COLORS["CRED"]}{res["solved"]["hard"]}{COLORS["CEND"]}]')
 
 def query(url: str, uname: str) -> dict:
     query_data: dict = {
         'query': '''
             query userPublicProfileAndProblemsSolved($username: String!) {
+                userContestRanking(username: $username) {
+                    rating
+                    globalRanking
+                    topPercentage
+                }
                 matchedUser(username: $username) {
                     profile {
                         ranking
@@ -124,8 +132,17 @@ def query(url: str, uname: str) -> dict:
             'easy': query_res['data']['matchedUser']['submitStatsGlobal']['acSubmissionNum'][1]['count'],
             'medium': query_res['data']['matchedUser']['submitStatsGlobal']['acSubmissionNum'][2]['count'],
             'hard': query_res['data']['matchedUser']['submitStatsGlobal']['acSubmissionNum'][3]['count'],
-        }
+        },
     }
+
+    if query_res['data']['userContestRanking'] is not None:
+        res['contest'] = {
+            'rating': query_res['data']['userContestRanking']['rating'],
+            # 'ranking': query_res['data']['userContestRanking']['globalRanking'],
+            'percentile': query_res['data']['userContestRanking']['topPercentage'],
+        }
+    else:
+        res['contest'] = None
 
     return res
 
