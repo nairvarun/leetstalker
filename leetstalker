@@ -69,6 +69,8 @@ def main():
         't0o0st',
         'pulkitkumarmathur1',
         'tanishq0_0',
+        'larryNY',
+        'AmolwillWin',
     )
     URL: str = 'https://leetcode.com/graphql/'
     results: list[dict] = []
