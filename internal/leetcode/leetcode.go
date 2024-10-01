@@ -3,8 +3,11 @@ package leetcode
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -13,6 +16,13 @@ type GraphQLRequest struct {
 	Query		string					`json:"query"`
 	Variables	map[string]string		`json:"variables"`
 }
+
+type UserData struct {
+	Username	string
+	Data		[]byte
+	Error		error
+}
+
 
 const (
     url = "https://leetcode.com/graphql/"
@@ -69,8 +79,7 @@ func FetchUserData(username string) ([]byte, error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
-	}
-	defer resp.Body.Close()
+	}; defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -82,4 +91,51 @@ func FetchUserData(username string) ([]byte, error) {
 	}
 
 	return body, nil
+}
+
+func worker(username string, results chan<- UserData) {
+	data, err := FetchUserData(username)
+	results <- UserData{
+		Username:	username,
+		Data:		data,
+		Error:		err,
+	}
+}
+
+func FetchMultiple(users []string) {
+	var wg sync.WaitGroup
+	results := make(chan UserData, len(users))
+	for _, username := range users {
+		wg.Add(1)
+		go func (u string) {
+			defer wg.Done()
+			worker(u, results)
+		}(username)
+
+	}
+
+	go func () {
+		wg.Wait()
+		close(results)
+	}()
+
+	for result := range results {
+		if result.Error != nil {
+			log.Fatal(result.Error)
+			continue
+		}
+
+		var jsonResult interface{}
+		if err := json.Unmarshal(result.Data, &jsonResult); err != nil {
+			log.Fatal(err)
+			continue
+		}
+		prettyJSON, err := json.MarshalIndent(jsonResult, "", "  ")
+		if err != nil {
+			fmt.Printf("Error formatting JSON for %s: %v\n", result.Username, err)
+			continue
+		}
+
+		fmt.Printf("Data for %s:\n%s\n\n", result.Username, string(prettyJSON))
+	}
 }

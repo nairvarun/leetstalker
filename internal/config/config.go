@@ -1,7 +1,11 @@
 package config
 
 import (
-	"fmt"
+	"embed"
+	"errors"
+
+	"io"
+	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
@@ -9,66 +13,82 @@ import (
 	"github.com/spf13/viper"
 )
 
+// load config
+// create config
+// add user to config
+
+//go:embed config.yaml
+var f embed.FS
+
 type Configuration struct {
 	Users []string `json:"users"`
 }
 
-func createConfigFile(configDir, configFile string) error {
-    // Create config directory
-    if err := os.MkdirAll(configDir, 0755); err != nil && !os.IsExist(err) {
-        return err
-    }
+func getConfigPath() (string, error) {
+	if homeDir, err := os.UserHomeDir(); err != nil {
+		return "", err
+	} else {
+		return filepath.Join(homeDir, ".config", "leetstalker", "config.yaml"), nil
+	}
+}
 
-    // Create config file
-    if _, err := os.Create(configFile); err != nil {
-        return err
-    }
-
-	// Write sample data to config file
-	viper.Set("users", []string {"larryNY"})
-	if err := viper.WriteConfigAs(filepath.Join(configDir, configFile)); err != nil {
+func createConfigFile() error {
+	// create config directory
+	config, err := getConfigPath()
+	if err != nil {
 		return err
 	}
 
-    return nil
-}
-
-
-func LoadConfiguration() (*Configuration, error) {
-	var config *Configuration
-
-	// Get user $HOME
-	homeDir, err := os.UserHomeDir();
-	if err != nil {
-		return nil, err
+	if err := os.MkdirAll(filepath.Dir(config), 0755); err != nil && !errors.Is(err, fs.ErrExist) {
+		return err
 	}
 
-	// Set config file path
-	configDir := filepath.Join(homeDir, ".config", "leetstalker")
-	configFile := "config"
-	configType := "yaml"
+	// create config file
+	destination, err := os.Create(filepath.Base(config))
+	if err != nil {
+		return err
+	}; defer destination.Close()
 
-	viper.AddConfigPath(configDir)
-	viper.SetConfigName(configFile)
-	viper.SetConfigType(configType)
+	// open embedded source file
+	source, err := f.Open("config.yaml")
+	if err != nil {
+		return err
+	}; defer source.Close()
 
+	// copy embedded file to destination
+	if _, err := io.Copy(destination, source); err != nil {
+		return err
+	}
 
-	// Read config file
+	return nil
+}
+
+func InitConfig(configuration *Configuration) error {
+	// get config
+	config, err := getConfigPath()
+	if err != nil {
+		return err
+	}
+
+	// set config in viper
+	viper.SetConfigFile(config)
+
+	// read config
 	if err := viper.ReadInConfig(); err != nil {
 		// Create file if not exists
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			log.Println("Config file not found. Creating empty config file at ~/.config/leetstalker/")
-			if err := createConfigFile(configDir, fmt.Sprintf("%s.%s", configFile, configType)); err != nil {
-				return nil, err
+			log.Println("Config file not found. Creating empty config file (~/.config/leetstalker/config.yaml)")
+			if err := createConfigFile(); err != nil {
+				return err
 			}
 		} else {
-			return nil, err
+			return err
 		}
 	}
 
-	if err := viper.Unmarshal(&config); err != nil {
-		return nil, err
+	if err := viper.Unmarshal(&configuration); err != nil {
+		return err
 	}
 
-	return config, nil
+	return nil
 }
