@@ -9,11 +9,12 @@ from dataclasses import dataclass, asdict
 from heapq import heapify, heappop
 from rich.console import Console
 from rich.table import Table
+from importlib.metadata import version, PackageNotFoundError
 
 
 @dataclass
 class Config:
-    '''
+    """
     loads configuration from toml file.
 
     default location: ~/.config/leetstalker/config.toml
@@ -24,13 +25,14 @@ class Config:
         'nairvarun',
         'gultandon',
     ]
-    '''
+    """
+
     users: list[str]
 
 
 @dataclass(frozen=True)
 class Query:
-    '''holds graphql endpoint and query to fetch user data from leetcode'''
+    """holds graphql endpoint and query to fetch user data from leetcode"""
 
     url: str = "https://leetcode.com/graphql/"
     __query: str = """
@@ -55,13 +57,14 @@ class Query:
 
     @classmethod
     def get_query_data(cls, username):
-        '''substitutes variable and generate graphql query to fetch user data from leetcode'''
+        """substitutes variable and generate graphql query to fetch user data from leetcode"""
         return {"query": cls.__query, "variables": {"username": username}}
 
 
 @dataclass(order=True)
 class User:
-    '''holds user data fetched from leetcode'''
+    """holds user data fetched from leetcode"""
+
     ranking: int  # this will determine the order
     username: str
 
@@ -76,7 +79,7 @@ class User:
     contest_ranking: int | None
     contest_percentile: float | None
 
-    def __init__(self, username: str, data: dict, error: str | None=None):
+    def __init__(self, username: str, data: dict, error: str | None = None):
         if error is not None:
             print(error, file=stderr)
 
@@ -95,16 +98,23 @@ class User:
             self.contest_percentile = None
 
         self.ranking = data["matchedUser"]["profile"]["ranking"]
-        self.questions_solved = data["matchedUser"]["submitStatsGlobal"]["acSubmissionNum"][0]["count"]
-        self.easy_questions_solved = data["matchedUser"]["submitStatsGlobal"]["acSubmissionNum"][1]["count"]
-        self.medium_questions_solved = data["matchedUser"]["submitStatsGlobal"]["acSubmissionNum"][2]["count"]
-        self.hard_questions_solved = data["matchedUser"]["submitStatsGlobal"]["acSubmissionNum"][3]["count"]
-
+        self.questions_solved = data["matchedUser"]["submitStatsGlobal"][
+            "acSubmissionNum"
+        ][0]["count"]
+        self.easy_questions_solved = data["matchedUser"]["submitStatsGlobal"][
+            "acSubmissionNum"
+        ][1]["count"]
+        self.medium_questions_solved = data["matchedUser"]["submitStatsGlobal"][
+            "acSubmissionNum"
+        ][2]["count"]
+        self.hard_questions_solved = data["matchedUser"]["submitStatsGlobal"][
+            "acSubmissionNum"
+        ][3]["count"]
 
 
 def get_configuration(config: Path) -> Config:
     if not config.exists():
-        print('no configuration file found', file=stderr)
+        print("no configuration file found", file=stderr)
         exit(1)
 
     with config.open(mode="rb") as f:
@@ -117,23 +127,29 @@ def get_configuration(config: Path) -> Config:
     try:
         return Config(**configuration)
     except Exception as e:
-        print('invalid config', file=stderr)
+        print("invalid config", file=stderr)
         exit(1)
 
 
 async def get_data(session, username) -> User:
     try:
-        async with session.post(Query.url, json=Query.get_query_data(username)) as response:
+        async with session.post(
+            Query.url, json=Query.get_query_data(username)
+        ) as response:
             if response.status == 200:
                 data = await response.json()
                 if "errors" not in data:
                     return User(username, data, None)
                 else:
-                    return User('', {}, f'User {username} not found.')
+                    return User("", {}, f"User {username} not found.")
             else:
-                return User('', {}, f'Failed to fetch data for {username}. Status code: {response.status}')
+                return User(
+                    "",
+                    {},
+                    f"Failed to fetch data for {username}. Status code: {response.status}",
+                )
     except Exception as e:
-        return User('', {}, f'Failed to fetch data for {username}. {e}')
+        return User("", {}, f"Failed to fetch data for {username}. {e}")
 
 
 def print_table(responses: list[User], console: Console):
@@ -159,8 +175,8 @@ def print_table(responses: list[User], console: Console):
             str(user.hard_questions_solved),
             str(user.medium_questions_solved),
             str(user.easy_questions_solved),
-            f'{user.contest_ranking:.02f}' if user.contest_ranking is not None else '-',
-            f'{user.contest_rating:.02f}' if user.contest_rating is not None else '-',
+            f"{user.contest_ranking:.02f}" if user.contest_ranking is not None else "-",
+            f"{user.contest_rating:.02f}" if user.contest_rating is not None else "-",
         )
 
     console.print(table)
@@ -171,7 +187,7 @@ def print_json(responses: list[User]):
     print(json.dumps(responses, indent=4))
 
 
-async def main(users: list, config: Path, output: str) -> int:
+async def leetstalker(users: list, config: Path, output: str) -> int:
     if not users:
         config: Config = get_configuration(config)
     else:
@@ -183,17 +199,17 @@ async def main(users: list, config: Path, output: str) -> int:
                 tasks = (get_data(session, user) for user in config.users)
 
                 responses = await asyncio.gather(*tasks)
-                responses = [i for i in responses if i.username != '']
+                responses = [i for i in responses if i.username != ""]
 
-                if output == 'table':
+                if output == "table":
                     print_table(responses, console)
-                elif output == 'json':
+                elif output == "json":
                     print_json(responses)
 
 
 def root_handler(args):
     try:
-        asyncio.run(main(args.users, args.config, args.output))
+        asyncio.run(leetstalker(args.users, args.config, args.output))
     except KeyboardInterrupt:
         exit(1)
     except Exception as e:
@@ -201,13 +217,40 @@ def root_handler(args):
         exit(1)
 
 
-def run():
-    parser = argparse.ArgumentParser(prog='leetstalker', epilog='(https://github.com/nairvarun/leetstalker)', conflict_handler='resolve')
-    # TODO: importlib.metadata
-    parser.add_argument('--version', action='version', version='%(prog)s 1.0')
-    parser.add_argument('users', nargs='*')
-    parser.add_argument('--config', help='path to configuration file', type=Path, default=Path.joinpath(Path.home(), '.config', 'leetstalker', 'config.toml'))
-    parser.add_argument('--output', help='specify output format', choices=['table', 'json'], type=str, default='table')
+def get_version():
+    try:
+        return version("leetstalker")
+    except PackageNotFoundError:
+        return "unknown"
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="leetstalker",
+        epilog="(https://github.com/nairvarun/leetstalker)",
+        conflict_handler="resolve",
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {get_version()}"
+    )
+    parser.add_argument("users", nargs="*")
+    parser.add_argument(
+        "--config",
+        help="path to configuration file",
+        type=Path,
+        default=Path.joinpath(Path.home(), ".config", "leetstalker", "config.toml"),
+    )
+    parser.add_argument(
+        "--output",
+        help="specify output format",
+        choices=["table", "json"],
+        type=str,
+        default="table",
+    )
     parser.set_defaults(handler=root_handler)
     args = parser.parse_args()
     args.handler(args)
+
+
+if __name__ == "__main__":
+    main()
