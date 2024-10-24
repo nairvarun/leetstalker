@@ -9,6 +9,7 @@ from dataclasses import dataclass, asdict
 from heapq import heapify, heappop
 from rich.console import Console
 from rich.table import Table
+from rich.prompt import Confirm
 from importlib.metadata import version, PackageNotFoundError
 
 
@@ -115,7 +116,23 @@ class User:
 def get_configuration(config: Path) -> Config:
     if not config.exists():
         print("no configuration file found", file=stderr)
-        exit(1)
+
+        # offer to create config file
+        resp = Confirm.ask(
+            f"Create configuration file at {config}?",
+            default="y",
+        )
+        if resp == "y":
+            config.parent.mkdir(parents=True, exist_ok=True)
+            with config.open(mode="w") as f:
+                f.write(
+                    """users = [
+'larryNY',
+'nairvarun',
+]"""
+                )
+        else:
+            exit(0)
 
     with config.open(mode="rb") as f:
         try:
