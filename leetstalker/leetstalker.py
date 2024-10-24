@@ -201,7 +201,7 @@ def root_handler(args):
         exit(1)
 
 
-if __name__ == "__main__":
+def run():
     parser = argparse.ArgumentParser(prog='leetstalker', epilog='(https://github.com/nairvarun/leetstalker)', conflict_handler='resolve')
     # TODO: importlib.metadata
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')

@@ -1,0 +1,15 @@
+[project]
+name = "leetstalker"
+dynamic = ["version"]
+dependencies = [
+    "aiohttp",
+    "rich",
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project.scripts]
+leetstalker = "leetstalker.leetstalker:run"
+
