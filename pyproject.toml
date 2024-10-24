@@ -1,14 +1,24 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "leetstalker"
-dynamic = ["version"]
+description = "Fetch user stats from leetcode"
+version = "1.0.0"
 dependencies = [
     "aiohttp",
     "rich",
 ]
+authors = [ {name = "Varun Sudheer Nair", email = "nairvarun104@gmail.com"} ]
+maintainers = [ {name = "Varun Sudheer Nair", email = "nairvarun104@gmail.com"} ]
+readme = "README.md"
+license = {file = "LICENSE"}
 
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+[project.urls]
+Repository = "https://github.com/nairvarun/leetstalker.git"
+Issues = "https://github.com/nairvarun/leetstalker/issues"
+Changelog = "https://github.com/nairvarun/leetstalker/blob/main/CHANGELOG.md"
 
 [project.scripts]
 leetstalker = "leetstalker.leetstalker:run"
