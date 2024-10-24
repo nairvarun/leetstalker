@@ -115,8 +115,6 @@ class User:
 
 def get_configuration(config: Path) -> Config:
     if not config.exists():
-        print("no configuration file found", file=stderr)
-
         # offer to create config file
         resp = Confirm.ask(
             f"Create configuration file at {config}?",
