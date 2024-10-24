@@ -21,5 +21,5 @@ Issues = "https://github.com/nairvarun/leetstalker/issues"
 Changelog = "https://github.com/nairvarun/leetstalker/blob/main/CHANGELOG.md"
 
 [project.scripts]
-leetstalker = "leetstalker.leetstalker:run"
+leetstalker = "leetstalker.leetstalker:main"
 
