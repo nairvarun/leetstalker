@@ -116,18 +116,20 @@ class User:
 def get_configuration(config: Path) -> Config:
     if not config.exists():
         # offer to create config file
-        resp = Confirm.ask(
+        create_file = Confirm.ask(
             f"Create configuration file at {config}?",
-            default="y",
+            default=True,
         )
-        if resp == "y":
+        if create_file:
             config.parent.mkdir(parents=True, exist_ok=True)
             with config.open(mode="w") as f:
-                f.write(
-                    """users = [
-'larryNY',
-'nairvarun',
-]"""
+                f.writelines(
+                    [
+                        "users = [\n",
+                        "   'larryNY',\n",
+                        "   'nairvarun',\n",
+                        "]\n",
+                    ]
                 )
         else:
             exit(0)
